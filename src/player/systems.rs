@@ -10,6 +10,7 @@ pub const MAX_GRAVITY_SCALE: f32 = 300.0;
 pub const JUMP_FORCE: f32 = 300.0;
 pub const GRAVITY_SCALE: f32 = 10.0;
 pub const AIRTIME_DELAY: f32 = 0.05;
+pub const COYOTE_TIME: f32 = 0.05;
 
 pub static mut PLAYER_VERTICAL: f32 = 0.0;
 
@@ -48,11 +49,11 @@ pub fn player_movement(
 {
     if let Ok(mut transform) = player_query.get_single_mut(){
         let mut direction = Vec2::ZERO;
-        if unsafe { PLAYER_VERTICAL } <= MAX_GRAVITY_SCALE {
-            unsafe { PLAYER_VERTICAL += GRAVITY_SCALE };
+        if player_resources.player_vertical <= MAX_GRAVITY_SCALE {
+            player_resources.player_vertical += GRAVITY_SCALE ;
         }
 
-        let mut gravity = Vec2::new(0.0, -unsafe { PLAYER_VERTICAL });
+        let mut gravity = Vec2::new(0.0, -player_resources.player_vertical);
         
         if keyboard_input.pressed(KeyCode::Left) {
             direction += Vec2::new(-1.0, 0.0)
@@ -64,33 +65,33 @@ pub fn player_movement(
         // Jump Function
         if keyboard_input.just_pressed(KeyCode::Space) {
             player_resources.air_timer = AIRTIME_DELAY;
-            match player_resources.is_ground {
-                true => {
-                    unsafe { PLAYER_VERTICAL = -JUMP_FORCE };
+            if player_resources.is_ground || player_resources.coyote_timer > 0.0{
+                    player_resources.jumped = true;
+                    player_resources.player_vertical = -JUMP_FORCE;
                     player_resources.air_timer = 0.0;
-                }
-                false => {
-                    return;
-                }
+                    player_resources.coyote_timer = 0.0;
             }
         }
         //Jump time error
-        if player_resources.air_timer > 0.0  && player_resources.is_ground{
-            match player_resources.is_ground {
-                true => {
-                    unsafe { PLAYER_VERTICAL = -JUMP_FORCE };
-                    player_resources.air_timer = 0.0;
-                }
-                false => {
-                    return;
-                }
-            }
+        if (player_resources.air_timer > 0.0  && player_resources.is_ground){
+            player_resources.jumped = true;
+            player_resources.player_vertical = -JUMP_FORCE;
+            player_resources.air_timer = 0.0;
+            player_resources.coyote_timer = 0.0;
         }
-        player_resources.air_timer -= time.delta_seconds();
+
+        //Timers
+        if(player_resources.air_timer > 0.0){
+            player_resources.air_timer -= time.delta_seconds();
+        }
+        if(player_resources.coyote_timer > 0.0){
+            player_resources.coyote_timer -= time.delta_seconds();
+        }
         //PlayerUpdate
         for mut controller in controllers.iter_mut() {
             controller.translation = Some(direction * PLAYER_SPEED * time.delta_seconds() + gravity * time.delta_seconds());
         }
+        println!("{:?}", player_resources.player_vertical)
 
         //Gravity controller
     }
@@ -103,9 +104,14 @@ pub fn player_ground_check(mut player_resources: ResMut<PLAYER_RESOURCES>,
         match output.grounded {
             true => {
                 player_resources.is_ground = true;
+                player_resources.jumped = false;
+                player_resources.falling = false;
             }
             false => {
                 player_resources.is_ground = false;
+                if !player_resources.jumped && player_resources.coyote_timer <= 0.0 {
+                    player_resources.coyote_timer = COYOTE_TIME;
+                }
             }
         }
     }
