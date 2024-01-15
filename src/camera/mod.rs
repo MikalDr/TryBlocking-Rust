@@ -46,7 +46,5 @@ pub fn camera_follow_player(
         if let Ok(transform) = player_query.get_single_mut(){
             camera_transform.translation = transform.translation;
         }
-
-        println!("{}", camera_transform.translation);
     }
 }

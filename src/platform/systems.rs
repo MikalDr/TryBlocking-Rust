@@ -12,8 +12,7 @@ pub fn spawn_platform(mut commands: Commands, window_query: Query<&Window, With<
                 }, 
                 RigidBody::Fixed,
                 Collider::cuboid(window.width()/2.0, 20.0),
-                ActiveEvents::COLLISION_EVENTS,
-            ),
+            )
     );
 }
 

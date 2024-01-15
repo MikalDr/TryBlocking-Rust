@@ -7,7 +7,7 @@ const SPRITE_PATH: &str = "TemPlayer.png";
 pub const PLAYER_SPEED: f32 = 350.0;
 pub const PLAYER_SIZE: f32 = 64.0;
 pub const MAX_GRAVITY_SCALE: f32 = 300.0;
-pub const GRAVITY_SCALE: f32 = 14.0;
+pub const GRAVITY_SCALE: f32 = 10.0;
 
 pub static mut PLAYER_VERTICAL: f32 = 0.0;
 
@@ -31,10 +31,9 @@ pub fn spawn_player(
     )
     .insert(RigidBody::KinematicPositionBased)
     .insert(Collider::ball(10.0))
-    .insert(KinematicCharacterController {
-        up: Vec2::X,
-        ..default()
-    });
+    .insert(KinematicCharacterController::default())
+    .insert(ActiveEvents::CONTACT_FORCE_EVENTS)
+    ;
 }
 
 pub fn player_movement(
@@ -43,7 +42,7 @@ pub fn player_movement(
     time: Res<Time>,
     is_player_grounded: Res<PLAYER_GROUNDED>,
     mut controllers: Query<&mut KinematicCharacterController, With<Player>>,
-    mut character_controller_output: Query<&mut KinematicCharacterControllerOutput, With<Player>>
+    controllerOutput: Query<(Entity, &KinematicCharacterControllerOutput)>,
 )
 {
     if let Ok(mut transform) = player_query.get_single_mut(){
@@ -64,7 +63,16 @@ pub fn player_movement(
         
         // Jump Function
         if keyboard_input.just_pressed(KeyCode::Space) {
-            unsafe { PLAYER_VERTICAL = -230.0 };
+            for (entity, output) in controllerOutput.iter() {
+                match output.grounded {
+                    true => {
+                        unsafe { PLAYER_VERTICAL = -300.0 };
+                    }
+                    false => {
+                        return;
+                    }
+                }
+            }
         }
 
         for mut controller in controllers.iter_mut() {
