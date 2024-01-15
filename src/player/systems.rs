@@ -9,7 +9,7 @@ pub const PLAYER_SIZE: f32 = 64.0;
 pub const MAX_GRAVITY_SCALE: f32 = 300.0;
 pub const JUMP_FORCE: f32 = 300.0;
 pub const GRAVITY_SCALE: f32 = 10.0;
-pub const AIRTIME_DELAY: f32 = 0.02;
+pub const AIRTIME_DELAY: f32 = 0.05;
 
 pub static mut PLAYER_VERTICAL: f32 = 0.0;
 
@@ -76,7 +76,6 @@ pub fn player_movement(
         }
         //Jump time error
         if player_resources.air_timer > 0.0  && player_resources.is_ground{
-            player_resources.air_timer -= time.delta_seconds();
             match player_resources.is_ground {
                 true => {
                     unsafe { PLAYER_VERTICAL = -JUMP_FORCE };
@@ -87,6 +86,7 @@ pub fn player_movement(
                 }
             }
         }
+        player_resources.air_timer -= time.delta_seconds();
         //PlayerUpdate
         for mut controller in controllers.iter_mut() {
             controller.translation = Some(direction * PLAYER_SPEED * time.delta_seconds() + gravity * time.delta_seconds());
