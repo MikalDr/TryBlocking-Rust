@@ -7,6 +7,8 @@ MVP Goals:
 
 - Physics [X]
 - PlayerMovement [ ]
+  - Jump frame before proper "grounded" [ ]
+  - Coyote time [ ]
 - PlayerAbility (Blocking) [ ]
 - Level Loading [ ]
 - Scalable Window [ ]
