@@ -1,13 +1,15 @@
 use bevy::{prelude::*, window::PrimaryWindow, input::keyboard};
 use bevy_rapier2d::prelude::*;
 
-use super::{component::Player, PLAYER_GROUNDED};
+use super::{component::Player, PLAYER_RESOURCES};
 
 const SPRITE_PATH: &str = "TemPlayer.png";
 pub const PLAYER_SPEED: f32 = 350.0;
 pub const PLAYER_SIZE: f32 = 64.0;
 pub const MAX_GRAVITY_SCALE: f32 = 300.0;
+pub const JUMP_FORCE: f32 = 300.0;
 pub const GRAVITY_SCALE: f32 = 10.0;
+pub const AIRTIME_DELAY: f32 = 0.02;
 
 pub static mut PLAYER_VERTICAL: f32 = 0.0;
 
@@ -40,20 +42,18 @@ pub fn player_movement(
     keyboard_input: Res<Input<KeyCode>>,
     mut player_query: Query<&mut Transform, With<Player>>,
     time: Res<Time>,
-    is_player_grounded: Res<PLAYER_GROUNDED>,
+    mut player_resources: ResMut<PLAYER_RESOURCES>,
     mut controllers: Query<&mut KinematicCharacterController, With<Player>>,
-    controllerOutput: Query<(Entity, &KinematicCharacterControllerOutput)>,
 )
 {
     if let Ok(mut transform) = player_query.get_single_mut(){
         let mut direction = Vec2::ZERO;
-        
         if unsafe { PLAYER_VERTICAL } <= MAX_GRAVITY_SCALE {
             unsafe { PLAYER_VERTICAL += GRAVITY_SCALE };
         }
 
         let mut gravity = Vec2::new(0.0, -unsafe { PLAYER_VERTICAL });
-
+        
         if keyboard_input.pressed(KeyCode::Left) {
             direction += Vec2::new(-1.0, 0.0)
         }
@@ -63,22 +63,50 @@ pub fn player_movement(
         
         // Jump Function
         if keyboard_input.just_pressed(KeyCode::Space) {
-            for (entity, output) in controllerOutput.iter() {
-                match output.grounded {
-                    true => {
-                        unsafe { PLAYER_VERTICAL = -300.0 };
-                    }
-                    false => {
-                        return;
-                    }
+            player_resources.air_timer = AIRTIME_DELAY;
+            match player_resources.is_ground {
+                true => {
+                    unsafe { PLAYER_VERTICAL = -JUMP_FORCE };
+                    player_resources.air_timer = 0.0;
+                }
+                false => {
+                    return;
                 }
             }
         }
-
+        //Jump time error
+        if player_resources.air_timer > 0.0  && player_resources.is_ground{
+            player_resources.air_timer -= time.delta_seconds();
+            match player_resources.is_ground {
+                true => {
+                    unsafe { PLAYER_VERTICAL = -JUMP_FORCE };
+                    player_resources.air_timer = 0.0;
+                }
+                false => {
+                    return;
+                }
+            }
+        }
+        //PlayerUpdate
         for mut controller in controllers.iter_mut() {
             controller.translation = Some(direction * PLAYER_SPEED * time.delta_seconds() + gravity * time.delta_seconds());
         }
 
         //Gravity controller
+    }
+}
+
+pub fn player_ground_check(mut player_resources: ResMut<PLAYER_RESOURCES>,
+    controller_output: Query<(Entity, &KinematicCharacterControllerOutput)>,
+) {
+    for (_entity, output) in controller_output.iter() {
+        match output.grounded {
+            true => {
+                player_resources.is_ground = true;
+            }
+            false => {
+                player_resources.is_ground = false;
+            }
+        }
     }
 }
