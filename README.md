@@ -9,6 +9,7 @@ MVP Goals:
 - PlayerMovement [ ]
   - Jump frame before proper "grounded" [X]
   - Coyote time [ ]
+  - Polish and Testing [ ]
 - Sprites / Animations [ ]
 - PlayerAbility (Blocking) [ ]
 - Level Loading [ ]
